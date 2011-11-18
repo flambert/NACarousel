@@ -15,13 +15,14 @@
 - (void)transitionTo:(UIImageView *)newView;
 - (UIImageView *)currentImageView;
 
-@property (nonatomic, assign, readwrite) BOOL isTransitioning;
-@property (nonatomic, assign, readwrite) BOOL isStarted;
+@property (nonatomic, readwrite) BOOL isTransitioning;
+@property (nonatomic, readwrite) BOOL isStarted;
 
 @end
 
 @implementation NACarousel
 
+@synthesize delegate           = _delegate;
 @synthesize images             = _images;
 @synthesize isTransitioning    = _isTransitioning;
 @synthesize isStarted          = _isStarted;
@@ -44,18 +45,28 @@
 }
 
 // Add an image to the array
-- (void)addImage:(NSString *)imageName {
-	UIImage     *image     = [UIImage imageNamed:imageName];
+- (void)addImage:(UIImage *)image {
 	UIImageView *imageView = [[UIImageView alloc] initWithImage:image];
 
 	// Hide each imageview except the first one
 	imageView.hidden = [self.images count] ? YES : NO;
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
 
 	[self.images addObject:imageView];
 	[self addSubview:imageView];
-  
+
 #if !__has_feature(objc_arc)
   [imageView release];
+#endif
+}
+
+// Add an image to the array
+- (void)addImageNamed:(NSString *)imageNamed {
+	UIImage *image = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:imageNamed ofType:nil]];
+    [self addImage:image];
+    
+#if !__has_feature(objc_arc)
+    [image release];
 #endif
 }
 
@@ -72,6 +83,14 @@
 	if (next >= [self.images count]) {
 		next = 0;
 	}
+    
+    if ([_delegate respondsToSelector:@selector(carousel:willTransitionToImage:of:)]) {
+        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:next of:[self.images count]];
+        if (!transitionToNext && self.isStarted) {
+            [self stop];
+            return;
+        }
+    }
 
 	[self transitionTo:[self.images objectAtIndex:next]];
 }
@@ -84,6 +103,14 @@
 		prev = [self.images count] - 1;
 	}
 
+    if ([_delegate respondsToSelector:@selector(carousel:willTransitionToImage:of:)]) {
+        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:prev of:[self.images count]];
+        if (!transitionToNext && self.isStarted) {
+            [self stop];
+            return;
+        }
+    }
+    
 	[self transitionTo:[self.images objectAtIndex:prev]];
 }
 
@@ -91,6 +118,9 @@
 	if (_carouselTimer == nil) {
 		_carouselTimer = [NSTimer scheduledTimerWithTimeInterval:self.slideDuration target:self selector:@selector(next) userInfo:nil repeats:YES];
 		self.isStarted = YES;
+        
+        if ([_delegate respondsToSelector:@selector(carouselDidStart:)])
+            [_delegate carouselDidStart:self];
 	}
 }
 
@@ -98,9 +128,20 @@
 	[_carouselTimer invalidate];
 	self.isStarted = NO;
 	_carouselTimer = nil;
+
+    if ([_delegate respondsToSelector:@selector(carouselDidStop:)])
+        [_delegate carouselDidStop:self];
 }
 
 #pragma mark Private methods
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    
+    for (UIImageView* imageView in self.images) {
+        imageView.frame = self.bounds;
+    }
+}
 
 - (UIImageView *)currentImageView {
 	for (UIImageView *imageView in self.images) {
@@ -137,6 +178,7 @@
 
 #if !__has_feature(objc_arc)
 - (void)dealloc {
+    _delegate = nil;
 	[_carouselTimer invalidate];
 	[_images release];
 	[super dealloc];
