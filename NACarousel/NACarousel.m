@@ -77,41 +77,41 @@
 #pragma mark Carousel Controls
 
 - (void)next {
-	int current = [self.images indexOfObject:[self currentImageView]];
-	int next    = current + 1;
+	NSInteger current = (NSInteger)[self.images indexOfObject:[self currentImageView]];
+	NSInteger next    = current + 1;
 
-	if (next >= [self.images count]) {
+	if (next >= (NSInteger)[self.images count]) {
 		next = 0;
 	}
     
     if ([_delegate respondsToSelector:@selector(carousel:willTransitionToImage:of:)]) {
-        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:next of:[self.images count]];
+        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:next of:(NSInteger)[self.images count]];
         if (!transitionToNext && self.isStarted) {
             [self stop];
             return;
         }
     }
 
-	[self transitionTo:[self.images objectAtIndex:next]];
+	[self transitionTo:[self.images objectAtIndex:(NSUInteger)next]];
 }
 
 - (void)prev {
-	int current = [self.images indexOfObject:[self currentImageView]];
-	int prev    = current - 1;
+	NSInteger current = (NSInteger)[self.images indexOfObject:[self currentImageView]];
+	NSInteger prev    = current - 1;
 
 	if (prev < 0) {
-		prev = [self.images count] - 1;
+		prev = (NSInteger)[self.images count] - 1;
 	}
 
     if ([_delegate respondsToSelector:@selector(carousel:willTransitionToImage:of:)]) {
-        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:prev of:[self.images count]];
+        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:prev of:(NSInteger)[self.images count]];
         if (!transitionToNext && self.isStarted) {
             [self stop];
             return;
         }
     }
     
-	[self transitionTo:[self.images objectAtIndex:prev]];
+	[self transitionTo:[self.images objectAtIndex:(NSUInteger)prev]];
 }
 
 - (void)start {

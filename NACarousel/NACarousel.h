@@ -13,7 +13,7 @@
 @optional
 - (void)carouselDidStart:(NACarousel *)carousel;
 - (void)carouselDidStop:(NACarousel *)carousel;
-- (BOOL)carousel:(NACarousel *)carousel willTransitionToImage:(NSUInteger)imageIndex of:(NSUInteger)imageCount; // Return NO to stop
+- (BOOL)carousel:(NACarousel *)carousel willTransitionToImage:(NSInteger)imageIndex of:(NSInteger)imageCount; // Return NO to stop
 @end
 
 @interface NACarousel : UIView {
