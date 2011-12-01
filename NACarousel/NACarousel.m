@@ -12,8 +12,7 @@
 // Private methods
 @interface NACarousel ()
 
-- (void)transitionTo:(UIImageView *)newView;
-- (UIImageView *)currentImageView;
+- (void)transitionTo:(NSInteger)newIndex;
 
 @property (nonatomic, readwrite) BOOL isTransitioning;
 @property (nonatomic, readwrite) BOOL isStarted;
@@ -22,8 +21,8 @@
 
 @implementation NACarousel
 
+@synthesize dataSource         = _dataSource;
 @synthesize delegate           = _delegate;
-@synthesize images             = _images;
 @synthesize isTransitioning    = _isTransitioning;
 @synthesize isStarted          = _isStarted;
 @synthesize transitionDuration = _transitionDuration;
@@ -31,12 +30,12 @@
 
 - (id)initWithFrame:(CGRect)frame {
 	self = [super initWithFrame:frame];
-
+    
 	if (self) {
-		_images             = [[NSMutableArray alloc] initWithCapacity:2];
-		_carouselTimer      = nil;
-		_isTransitioning    = NO;
-		_isStarted          = NO;
+        _currentImageView = [[UIImageView alloc] init];
+        _currentImageView.contentMode = UIViewContentModeScaleAspectFit;
+        [self addSubview:_currentImageView];
+        
 		_transitionDuration = 0.75f;
 		_slideDuration      = 2.0f;
 	}
@@ -44,30 +43,12 @@
 	return self;
 }
 
-// Add an image to the array
-- (void)addImage:(UIImage *)image {
-	UIImageView *imageView = [[UIImageView alloc] initWithImage:image];
-
-	// Hide each imageview except the first one
-	imageView.hidden = [self.images count] ? YES : NO;
-    imageView.contentMode = UIViewContentModeScaleAspectFit;
-
-	[self.images addObject:imageView];
-	[self addSubview:imageView];
-
-#if !__has_feature(objc_arc)
-  [imageView release];
-#endif
-}
-
-// Add an image to the array
-- (void)addImageNamed:(NSString *)imageNamed {
-	UIImage *image = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:imageNamed ofType:nil]];
-    [self addImage:image];
+- (void)reloadData {
+    _currentImageIndex = 0;
     
-#if !__has_feature(objc_arc)
-    [image release];
-#endif
+    if ([self.dataSource numberOfImagesInCarousel:self] > 0) {
+        [self transitionTo:_currentImageIndex];
+    }
 }
 
 - (void)animationDidStop:(CAAnimation *)theAnimation finished:(BOOL)flag {
@@ -77,41 +58,41 @@
 #pragma mark Carousel Controls
 
 - (void)next {
-	NSInteger current = (NSInteger)[self.images indexOfObject:[self currentImageView]];
-	NSInteger next    = current + 1;
+	NSInteger next           = _currentImageIndex + 1;
+    NSInteger numberOfImages = [self.dataSource numberOfImagesInCarousel:self];
 
-	if (next >= (NSInteger)[self.images count]) {
+	if (next >= numberOfImages) {
 		next = 0;
 	}
     
     if ([_delegate respondsToSelector:@selector(carousel:willTransitionToImage:of:)]) {
-        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:next of:(NSInteger)[self.images count]];
+        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:next of:numberOfImages];
         if (!transitionToNext && self.isStarted) {
             [self stop];
             return;
         }
     }
 
-	[self transitionTo:[self.images objectAtIndex:(NSUInteger)next]];
+	[self transitionTo:next];
 }
 
 - (void)prev {
-	NSInteger current = (NSInteger)[self.images indexOfObject:[self currentImageView]];
-	NSInteger prev    = current - 1;
+	NSInteger prev           = _currentImageIndex - 1;
+    NSInteger numberOfImages = [self.dataSource numberOfImagesInCarousel:self];
 
 	if (prev < 0) {
-		prev = (NSInteger)[self.images count] - 1;
+		prev = numberOfImages - 1;
 	}
 
     if ([_delegate respondsToSelector:@selector(carousel:willTransitionToImage:of:)]) {
-        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:prev of:(NSInteger)[self.images count]];
+        BOOL transitionToNext = [_delegate carousel:self willTransitionToImage:prev of:numberOfImages];
         if (!transitionToNext && self.isStarted) {
             [self stop];
             return;
         }
     }
     
-	[self transitionTo:[self.images objectAtIndex:(NSUInteger)prev]];
+	[self transitionTo:prev];
 }
 
 - (void)start {
@@ -137,23 +118,10 @@
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    
-    for (UIImageView* imageView in self.images) {
-        imageView.frame = self.bounds;
-    }
+    _currentImageView.frame = self.bounds;
 }
 
-- (UIImageView *)currentImageView {
-	for (UIImageView *imageView in self.images) {
-		if (imageView.hidden == NO) {
-			return imageView;
-		}
-	}
-
-	return nil;
-}
-
-- (void)transitionTo:(UIImageView *)newView {
+- (void)transitionTo:(NSInteger)newIndex {
 	// Don't transition if already in a transition
 	if (self.isTransitioning) {
 		return;
@@ -166,21 +134,21 @@
 	// Should these be properties? Most likely yes.
 	transition.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
 	transition.type           = kCATransitionFade;
-
+    
 	transition.duration = self.transitionDuration;
 	transition.delegate = self;
-
+    
 	[self.layer addAnimation:transition forKey:nil];
-
-	[self currentImageView].hidden = YES;
-	newView.hidden                 = NO;
+    
+    _currentImageIndex = newIndex;
+    _currentImageView.image = [self.dataSource carousel:self imageForIndex:_currentImageIndex];
 }
 
 #if !__has_feature(objc_arc)
 - (void)dealloc {
     _delegate = nil;
-	[_carouselTimer invalidate];
-	[_images release];
+    [_carouselTimer release];
+    [_currentImageView release];
 	[super dealloc];
 }
 #endif

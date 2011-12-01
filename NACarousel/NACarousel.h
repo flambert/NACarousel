@@ -9,6 +9,13 @@
 #import <UIKit/UIKit.h>
 
 @class NACarousel;
+
+@protocol NACarouselDataSource <NSObject>
+@required
+- (NSInteger)numberOfImagesInCarousel:(NACarousel *)carousel;
+- (UIImage *)carousel:(NACarousel *)carousel imageForIndex:(NSInteger)index;
+@end
+
 @protocol NACarouselDelegate <NSObject>
 @optional
 - (void)carouselDidStart:(NACarousel *)carousel;
@@ -18,10 +25,12 @@
 
 @interface NACarousel : UIView {
 	@private
+    __unsafe_unretained id<NACarouselDataSource> _dataSource;
     __unsafe_unretained id<NACarouselDelegate> _delegate;
     
-	NSMutableArray *_images;
-	NSTimer        *_carouselTimer;
+	NSTimer     *_carouselTimer;
+    NSInteger    _currentImageIndex;
+    UIImageView *_currentImageView;
 
 	BOOL _isTransitioning;
 	BOOL _isStarted;
@@ -30,17 +39,15 @@
 	float _slideDuration;
 }
 
-- (void)addImage:(UIImage *)image;
-- (void)addImageNamed:(NSString *)imageNamed;
+- (void)reloadData;
 
 - (void)next;
 - (void)prev;
 - (void)start;
 - (void)stop;
 
-@property (nonatomic, unsafe_unretained) id<NACarouselDelegate> delegate;
-
-@property (nonatomic, strong, readonly) NSMutableArray *images;
+@property (nonatomic, assign) id<NACarouselDataSource> dataSource;
+@property (nonatomic, assign) id<NACarouselDelegate> delegate;
 
 @property (nonatomic, readonly) BOOL isTransitioning;
 @property (nonatomic, readonly) BOOL isStarted;
