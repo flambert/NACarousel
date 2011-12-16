@@ -144,13 +144,14 @@
     _currentImageView.image = [self.dataSource carousel:self imageForIndex:_currentImageIndex];
 }
 
-#if !__has_feature(objc_arc)
 - (void)dealloc {
+    _dataSource = nil;
     _delegate = nil;
+#if !__has_feature(objc_arc)
     [_carouselTimer release];
     [_currentImageView release];
 	[super dealloc];
-}
 #endif
+}
 
 @end
