@@ -155,6 +155,7 @@
 - (void)dealloc {
     _dataSource = nil;
     _delegate = nil;
+	[_carouselTimer invalidate];
 #if !__has_feature(objc_arc)
     [_carouselTimer release];
     [_currentImageView release];
