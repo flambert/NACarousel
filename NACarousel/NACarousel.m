@@ -55,6 +55,14 @@
 	self.isTransitioning = NO;
 }
 
+- (void)setContentMode:(UIViewContentMode)contentMode {
+    [_currentImageView setContentMode:contentMode];
+}
+
+- (UIViewContentMode)contentMode {
+    return [_currentImageView contentMode];
+}
+
 #pragma mark Carousel Controls
 
 - (void)next {
